@@ -24,9 +24,8 @@ namespace Display
 
     void readKey(lv_indev_t *indev, lv_indev_data_t *data)
     {
-        LV_KEY_NEXT
         bool pressed;
-        readKeyEventCb(&data->keyID, &pressed);
+        readKeyEventCb(&data->key, &pressed);
         data->state = pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
     }
 
