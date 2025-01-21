@@ -1,5 +1,6 @@
 #include <lvgl.h>
 #include <TFT_eSPI.h>
+#include <ulog.h>
 
 #include "Display.h"
 
@@ -36,30 +37,11 @@ namespace Display
 
     void printLog(lv_log_level_t level, const char *buf)
     {
-        Serial.print("[LVGL] ");
-        switch (level)
-        {
-        case LV_LOG_LEVEL_TRACE:
-            Serial.print("Trace: ");
-            break;
-        case LV_LOG_LEVEL_INFO:
-            Serial.print("Info: ");
-            break;
-        case LV_LOG_LEVEL_WARN:
-            Serial.print("Warn: ");
-            break;
-        case LV_LOG_LEVEL_ERROR:
-            Serial.print("Error: ");
-            break;
-        case LV_LOG_LEVEL_USER:
-            Serial.print("User: ");
-            break;
-        default:
-            break;
-        }
+        constexpr ulog_level_t ULOG_LEVELS[]{
+            ULOG_TRACE_LEVEL, ULOG_INFO_LEVEL, ULOG_WARNING_LEVEL,
+            ULOG_ERROR_LEVEL, ULOG_ALWAYS_LEVEL, static_cast<ulog_level_t>(0)};
 
-        Serial.print(buf);
-        Serial.flush();
+        ulog_message(ULOG_LEVELS[level], buf);
     }
 
     void init()
