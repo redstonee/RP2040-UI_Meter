@@ -11,7 +11,7 @@ constexpr auto KEY_R_PIN = 9;
 constexpr auto VSENSE_PIN = 26;
 constexpr auto ISENSE_PIN = 27;
 
-// Amplifier scale selection pins(TBD)
+// Amplifier scale selection pins
 constexpr auto V_SCALE0_PIN = 21;
 constexpr auto V_SCALE1_PIN = 22;
 constexpr auto I_SCALE0_PIN = 23;

@@ -46,7 +46,7 @@ public:
 
     /**
      * @brief Declare the actual gains for each scale,
-     * 
+     *
      * @param gains An array containing 4 gain values in float
      */
     inline void setGains(const float gains[4])
@@ -79,7 +79,7 @@ public:
     void convertOnce()
     {
         // Shift the samples left
-        for (uint8_t i = N_SAMPLES - 2; i > 0 - 1; i--)
+        for (uint8_t i = N_SAMPLES - 2; i > 0; i--)
         {
             readBuffer[i + 1] = readBuffer[i];
         }
