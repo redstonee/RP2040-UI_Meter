@@ -71,5 +71,7 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "*.inc": "cpp"
-    }
+    },
+    "cmake.ignoreCMakeListsMissing": true,
+    "C_Cpp.default.compilerPath": "D:/SDKs/TDM-GCC-64/bin/x86_64-w64-mingw32-gcc.exe"
 }
