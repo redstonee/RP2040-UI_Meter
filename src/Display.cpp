@@ -7,9 +7,9 @@
 namespace Display
 {
     static TFT_eSPI screen;
-    std::function<void(uint32_t *, bool *)> readKeyEventCb;
+    ReadKeyEventCallback readKeyEventCb;
 
-    static void flushDisplay(lv_display_t *disp, const lv_area_t *area,
+    inline void flushDisplay(lv_display_t *disp, const lv_area_t *area,
                              uint8_t *px_map)
     {
         uint32_t w = lv_area_get_width(area);
@@ -23,24 +23,24 @@ namespace Display
         lv_disp_flush_ready(disp);
     }
 
-    static void readKey(lv_indev_t *indev, lv_indev_data_t *data)
+    inline void readKey(lv_indev_t *indev, lv_indev_data_t *data)
     {
         if (!readKeyEventCb)
         {
             ULOG_WARNING("readKeyEventCb not set");
             return;
         }
-        bool pressed;
-        readKeyEventCb(&data->key, &pressed);
+        auto [key, pressed] = readKeyEventCb();
+        data->key = key;
         data->state = pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
     }
 
-    void setReadKeyEventCb(std::function<void(uint32_t *, bool *)> cb)
+    void setReadKeyEventCb(ReadKeyEventCallback cb)
     {
         readKeyEventCb = cb;
     }
 
-    static void printLog(lv_log_level_t level, const char *buf)
+    inline void printLog(lv_log_level_t level, const char *buf)
     {
         constexpr ulog_level_t ULOG_LEVELS[]{
             ULOG_TRACE_LEVEL, ULOG_INFO_LEVEL, ULOG_WARNING_LEVEL,
@@ -66,13 +66,39 @@ namespace Display
         lv_display_set_buffers(disp, drawBuf, NULL, sizeof(drawBuf),
                                LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-        lv_indev_t *indev = lv_indev_create();
-        lv_indev_set_type(indev, LV_INDEV_TYPE_KEYPAD);
-        lv_indev_set_read_cb(indev, readKey);
+        auto keyPadIndev = lv_indev_create();
+        lv_indev_set_type(keyPadIndev, LV_INDEV_TYPE_KEYPAD);
+        lv_indev_set_read_cb(keyPadIndev, readKey);
 
-        auto *label = lv_label_create(lv_screen_active());
-        lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-        lv_label_set_text(label, "Fuck my ass!!!!");
+        auto vHintLabel = lv_label_create(lv_screen_active());
+        auto iHintLabel = lv_label_create(lv_screen_active());
+        lv_obj_align(vHintLabel, LV_ALIGN_LEFT_MID, 8, -60);
+        lv_obj_align(iHintLabel, LV_ALIGN_RIGHT_MID, 8, 60);
+        lv_label_set_text(vHintLabel, "Voltage: ");
+        lv_label_set_text(vHintLabel, "Current: ");
+        lv_obj_set_style_text_font(vHintLabel, &lv_font_montserrat_20, LV_PART_MAIN);
+        lv_obj_set_style_text_font(iHintLabel, &lv_font_montserrat_20, LV_PART_MAIN);
+
+        // Just for an example usage of lv_group
+        auto buttonGroup = lv_group_create();
+        lv_indev_set_group(keyPadIndev, buttonGroup);
+
+        auto b1 = lv_button_create(lv_screen_active());
+        lv_obj_set_size(b1, 50, 25);
+        lv_obj_align(b1, LV_ALIGN_BOTTOM_MID, -50, -8);
+        auto b1Label = lv_label_create(b1);
+        lv_label_set_text(b1Label, "111");
+        lv_obj_align(b1Label, LV_ALIGN_CENTER, 0, 0);
+
+        auto b2 = lv_button_create(lv_screen_active());
+        lv_obj_set_size(b2, 50, 25);
+        lv_obj_align(b2, LV_ALIGN_BOTTOM_MID, 50, -8);
+        auto b2Label = lv_label_create(b2);
+        lv_label_set_text(b2Label, "222");
+        lv_obj_align(b2Label, LV_ALIGN_CENTER, 0, 0);
+
+        lv_group_add_obj(buttonGroup, b1);
+        lv_group_add_obj(buttonGroup, b2);
     }
 
     void handleTimer()

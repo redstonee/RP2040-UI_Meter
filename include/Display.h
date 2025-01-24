@@ -4,9 +4,26 @@
 
 namespace Display
 {
+    using ReadKeyEventCallback = std::function<std::pair<uint32_t, bool>()>;
+    /**
+     * @brief Initialize the display module
+     *
+     */
     void init();
+
+    /**
+     * @brief Handle the timer for the display module
+     *
+     * Should be called in a loop
+     */
     void handleTimer();
-    void setReadKeyEventCb(std::function<void(uint32_t *, bool *)> cb);
+
+    /**
+     * @brief Set the Read Key Event Cb object
+     *
+     * @param cb The callback function to read key events
+     */
+    void setReadKeyEventCb(ReadKeyEventCallback);
 
     /** Predefined keys to control focused object via lv_group_send(group, c) */
     enum
