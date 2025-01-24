@@ -25,6 +25,10 @@ constexpr auto V_SW_TH_LOW = 100;
 constexpr auto I_SW_TH_HIGH = 1000;
 constexpr auto I_SW_TH_LOW = 100;
 
+// Default gain values
+constexpr float V_SCALE_DEF_GAINS[] = {0.23, 0.45, 1, 2.14};
+constexpr float I_SCALE_DEF_GAIN[] = {5, 10, 22, 47};
+
 // Some loop period in ms
 constexpr auto SAMPLE_PERIOD = 10;
 constexpr auto GET_VALUE_PERIOD = 500;
