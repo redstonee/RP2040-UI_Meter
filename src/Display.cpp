@@ -12,13 +12,13 @@ namespace Display
     static lv_obj_t *vValueLabel;
     static lv_obj_t *iValueLabel;
 
-    bool voltageUpdated = false;
-    bool currentUpdated = false;
-
-    volatile float voltageValue = 0;
-    volatile bool voltageValid = 0;
-    volatile float currentValue = 0;
-    volatile bool currentValid = 0;
+    // Display update flags
+    static bool voltageUpdated = false;
+    static bool currentUpdated = false;
+    static float voltageValue = 0;
+    static bool voltageValid = 0;
+    static float currentValue = 0;
+    static bool currentValid = 0;
 
     inline void flushDisplay(lv_display_t *disp, const lv_area_t *area,
                              uint8_t *px_map)
