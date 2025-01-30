@@ -9,6 +9,17 @@ namespace Display
     static TFT_eSPI screen;
     ReadKeyEventCallback readKeyEventCb;
 
+    static lv_obj_t *vValueLabel;
+    static lv_obj_t *iValueLabel;
+
+    bool voltageUpdated = false;
+    bool currentUpdated = false;
+
+    volatile float voltageValue = 0;
+    volatile bool voltageValid = 0;
+    volatile float currentValue = 0;
+    volatile bool currentValid = 0;
+
     inline void flushDisplay(lv_display_t *disp, const lv_area_t *area,
                              uint8_t *px_map)
     {
@@ -51,6 +62,7 @@ namespace Display
 
     void init()
     {
+        // Initialize the driver and the graphics library
         screen.begin();
         screen.setSwapBytes(true);
         screen.initDMA();
@@ -70,14 +82,24 @@ namespace Display
         lv_indev_set_type(keyPadIndev, LV_INDEV_TYPE_KEYPAD);
         lv_indev_set_read_cb(keyPadIndev, readKey);
 
+        // Put the widgets on the screen
         auto vHintLabel = lv_label_create(lv_screen_active());
         auto iHintLabel = lv_label_create(lv_screen_active());
         lv_obj_align(vHintLabel, LV_ALIGN_LEFT_MID, 8, -60);
-        lv_obj_align(iHintLabel, LV_ALIGN_RIGHT_MID, 8, 60);
+        lv_obj_align(iHintLabel, LV_ALIGN_LEFT_MID, 8, 60);
         lv_label_set_text(vHintLabel, "Voltage: ");
-        lv_label_set_text(vHintLabel, "Current: ");
-        lv_obj_set_style_text_font(vHintLabel, &lv_font_montserrat_20, LV_PART_MAIN);
-        lv_obj_set_style_text_font(iHintLabel, &lv_font_montserrat_20, LV_PART_MAIN);
+        lv_label_set_text(iHintLabel, "Current: ");
+        lv_obj_set_style_text_font(vHintLabel, &lv_font_montserrat_24, LV_PART_MAIN);
+        lv_obj_set_style_text_font(iHintLabel, &lv_font_montserrat_24, LV_PART_MAIN);
+
+        vValueLabel = lv_label_create(lv_screen_active());
+        iValueLabel = lv_label_create(lv_screen_active());
+        lv_obj_align(vValueLabel, LV_ALIGN_RIGHT_MID, -8, -60);
+        lv_obj_align(iValueLabel, LV_ALIGN_RIGHT_MID, -8, 60);
+        lv_obj_set_style_text_font(vValueLabel, &lv_font_montserrat_24, LV_PART_MAIN);
+        lv_obj_set_style_text_font(iValueLabel, &lv_font_montserrat_24, LV_PART_MAIN);
+        lv_label_set_text(vValueLabel, "---");
+        lv_label_set_text(iValueLabel, "---");
 
         // Just for an example usage of lv_group
         auto buttonGroup = lv_group_create();
@@ -101,8 +123,52 @@ namespace Display
         lv_group_add_obj(buttonGroup, b2);
     }
 
-    void handleTimer()
+    void updateVoltage(const bool valid, const float value)
     {
+        voltageValue = value;
+        voltageValid = valid;
+        voltageUpdated = true;
+    }
+
+    void updateCurrent(const bool valid, const float value)
+    {
+        currentValue = value;
+        currentValid = valid;
+        currentUpdated = true;
+    }
+
+    inline void updateText(lv_obj_t *label, const bool valid, const float voltage, const char unit)
+    {
+        if (!label)
+        {
+            ULOG_ERROR("Cannot update text: target label is NULL");
+            return;
+        }
+        String txt;
+        if (!valid)
+            txt = "---";
+        else if (voltage == INFINITY)
+            txt = "--Overload--";
+        else
+            txt = String(voltage, 3) + " " + unit;
+
+        lv_label_set_text(label, txt.c_str());
+    }
+
+    void run()
+    {
+        if (voltageUpdated)
+        {
+            updateText(vValueLabel, voltageValid, voltageValue, 'V');
+            voltageUpdated = false;
+        }
+
+        if (currentUpdated)
+        {
+            updateText(iValueLabel, currentValid, currentValue, 'A');
+            currentUpdated = false;
+        }
+
         delay(lv_timer_handler());
     }
 } // namespace display

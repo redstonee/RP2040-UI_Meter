@@ -12,11 +12,11 @@ namespace Display
     void init();
 
     /**
-     * @brief Handle the timer for the display module
+     * @brief Main loop function for the display module
      *
      * Should be called in a loop
      */
-    void handleTimer();
+    void run();
 
     /**
      * @brief Set the Read Key Event Cb object
@@ -24,6 +24,22 @@ namespace Display
      * @param cb The callback function to read key events
      */
     void setReadKeyEventCb(ReadKeyEventCallback);
+
+    /**
+     * @brief Update the voltage value on the display
+     *
+     * @param valid A flag to indicate if the value is valid
+     * @param value The voltage value in volts, or INFINITY for overload
+     */
+    void updateVoltage(const bool, const float);
+
+    /**
+     * @brief Update the current value on the display
+     *
+     * @param valid A flag to indicate if the value is valid
+     * @param value The current value in amperes, or INFINITY for overload
+     */
+    void updateCurrent(const bool, const float);
 
     /** Predefined keys to control focused object via lv_group_send(group, c) */
     enum
