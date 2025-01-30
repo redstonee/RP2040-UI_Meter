@@ -71,7 +71,7 @@ public:
         bufferFilled = 0;                             // Needless to actually modify the buffer
     }
 
-    inline uint8_t getCurrentScale()
+    inline uint8_t getActiveScale()
     {
         return currentScale;
     }
