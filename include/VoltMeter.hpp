@@ -71,6 +71,11 @@ public:
         bufferFilled = 0;                             // Needless to actually modify the buffer
     }
 
+    inline uint8_t getCurrentScale()
+    {
+        return currentScale;
+    }
+
     /**
      * @brief Get a sample from the ADC and push it into the buffer
      *
@@ -79,9 +84,9 @@ public:
     void convertOnce()
     {
         // Shift the samples left
-        for (uint8_t i = N_SAMPLES - 2; i > 0; i--)
+        for (uint8_t i = 1; i < N_SAMPLES; i++)
         {
-            readBuffer[i + 1] = readBuffer[i];
+            readBuffer[i - 1] = readBuffer[i];
         }
 
         readBuffer[N_SAMPLES - 1] = analogRead(adcPin);
@@ -97,7 +102,7 @@ public:
      * @param resolution
      * @return std::pair<bool, float> `first` will be true if `second` is a valid voltage value
      */
-    std::pair<bool, float> readVoltage(const uint32_t resolution = 12)
+    std::pair<bool, float> readVoltage()
     {
         if (bufferFilled < N_SAMPLES)
             return {false, 0};
@@ -108,6 +113,7 @@ public:
             val += v;
         }
         val /= N_SAMPLES;
+        val *= 3.3 / (1 << ADC_RESOLUTION); // Convert to voltage
         return {true, val};
     }
 };
