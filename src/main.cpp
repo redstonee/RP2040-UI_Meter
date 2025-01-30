@@ -2,6 +2,8 @@
 #include <EEPROM.h>
 #include <ulog.h>
 
+#include "Tools.hpp"
+#include "UpLink.h"
 #include "Display.h"
 #include "KeyPad.h"
 #include "config.h"
@@ -16,48 +18,25 @@ struct MeterSettings
 };
 
 /**
- * @brief Calculate the sum of an byte (uint8_t) array by XOR
- *
- * @param data A pointer to the byte array
- * @param len The length of the array
- * @return uint8_t sum
+ * @brief The entry point of the program
  */
-uint8_t calcSum(uint8_t *data, size_t len)
-{
-  uint8_t sum = 0;
-  for (size_t i = 0; i < len; i++)
-  {
-    sum ^= *(data++);
-  }
-  return sum;
-}
-
 void setup()
 {
-  Serial.begin(115200);
-  static auto logOutput = [](ulog_level_t level, char *msg)
-  {
-    Serial.printf("[%d] ", millis());
-    Serial.print(ulog_level_name(level));
-    Serial.print(": ");
-    Serial.println(msg);
-  };
-  ulog_subscribe(logOutput, ULOG_INFO_LEVEL);
+  UpLink::init();
+  analogReadResolution(ADC_RESOLUTION);
 
-  analogReadResolution(12);
-
-  VoltMeter uMeter(VSENSE_PIN, V_SCALE0_PIN, V_SCALE1_PIN);
+  VoltMeter uMeter(USENSE_PIN, U_SCALE0_PIN, U_SCALE1_PIN);
   VoltMeter iMeter(ISENSE_PIN, I_SCALE0_PIN, I_SCALE1_PIN);
 
   MeterSettings settings;
   EEPROM.begin(sizeof(settings));
   EEPROM.get(0, settings);
 
-  auto sum = calcSum(reinterpret_cast<uint8_t *>(&settings), sizeof(settings) - 1);
+  auto sum = Tools::calcSum(reinterpret_cast<uint8_t *>(&settings), sizeof(settings) - 1);
   if (sum != settings.checksum)
   {
     ULOG_WARNING("No valid gain settings stored.");
-    uMeter.setGains(V_SCALE_DEF_GAINS);
+    uMeter.setGains(U_SCALE_DEF_GAINS);
     iMeter.setGains(I_SCALE_DEF_GAIN);
   }
   else
@@ -65,6 +44,9 @@ void setup()
     uMeter.setGains(settings.vScaleGains);
     iMeter.setGains(settings.iScaleGains);
   }
+
+  uMeter.selectScale(2);
+  iMeter.selectScale(2);
 
   while (1)
   {
@@ -76,7 +58,60 @@ void setup()
 
     if (!(millis() % GET_VALUE_PERIOD))
     {
-      uMeter.readVoltage();
+      auto [uValid, uValue] = uMeter.readVoltage();
+      auto [iValid, iValue] = iMeter.readVoltage();
+      iValue *= I_SAMPLE_RES;
+
+      // Current meter scale adjustment
+      auto activeScale = uMeter.getActiveScale();
+      if (uValid && uValue > U_SCALE_MAX_VALUE[activeScale])
+      {
+        if (activeScale < 3)
+        {
+          uMeter.selectScale(activeScale + 1);
+          uValid = false;
+        }
+        else
+        {
+          uValue = INFINITY;
+        }
+      }
+      else if (uValid && uValue < U_SCALE_MIN_VALUE[activeScale])
+      {
+        if (activeScale > 0)
+        {
+          uMeter.selectScale(activeScale - 1);
+          uValid = false;
+        }
+      }
+
+      // Voltage meter scale adjustment
+      activeScale = iMeter.getActiveScale();
+      if (iValid && iValue > I_SCALE_MAX_VALUE[activeScale])
+      {
+        if (activeScale < 3)
+        {
+          iMeter.selectScale(activeScale + 1);
+          iValid = false;
+        }
+        else
+        {
+          iValue = INFINITY;
+        }
+      }
+      else if (iValid && iValue < I_SCALE_MIN_VALUE[activeScale])
+      {
+        if (activeScale > 0)
+        {
+          iMeter.selectScale(activeScale - 1);
+          iValid = false;
+        }
+      }
+
+      ULOG_DEBUG("Voltage: %fV, Current: %fA", uValue, iValue);
+      sendValue(uValue, iValue);
+      Display::updateVoltage(uValid, uValue);
+      Display::updateCurrent(iValid, iValue);
     }
   }
 }
@@ -121,6 +156,6 @@ void setup1()
 
   while (true)
   {
-    Display::handleTimer();
+    Display::run();
   }
 }

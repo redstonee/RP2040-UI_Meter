@@ -10,7 +10,7 @@ private:
     uint32_t scale0Pin;
     uint32_t scale1Pin;
 
-    uint8_t currentScale = 0;
+    uint8_t activeScale = 0;
     float scaleGains[4];
 
     // Sample buffer for voltage smoothing
@@ -73,7 +73,7 @@ public:
 
     inline uint8_t getActiveScale()
     {
-        return currentScale;
+        return activeScale;
     }
 
     /**
