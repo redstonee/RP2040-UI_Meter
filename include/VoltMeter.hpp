@@ -100,12 +100,12 @@ public:
      * Only succeed if the buffer is filled
      *
      * @param resolution
-     * @return std::pair<bool, float> `first` will be true if `second` is a valid voltage value
+     * @return Value in volts, or -1 if it's invalid
      */
-    std::pair<bool, float> readVoltage()
+    float readVoltage()
     {
         if (bufferFilled < N_SAMPLES)
-            return {false, 0};
+            return -1;
 
         float val = 0;
         for (auto &v : readBuffer)
@@ -114,6 +114,6 @@ public:
         }
         val /= N_SAMPLES;
         val *= 3.3 / (1 << ADC_RESOLUTION); // Convert to voltage
-        return {true, val};
+        return val;
     }
 };

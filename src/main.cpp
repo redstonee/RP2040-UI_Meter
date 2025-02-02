@@ -9,7 +9,7 @@
 #include "config.h"
 #include "VoltMeter.hpp"
 
-struct MeterSettings
+struct __attribute__((packed)) MeterSettings
 {
   float vScaleGains[4];
   float iScaleGains[4];
@@ -28,11 +28,12 @@ void setup()
   VoltMeter uMeter(USENSE_PIN, U_SCALE0_PIN, U_SCALE1_PIN);
   VoltMeter iMeter(ISENSE_PIN, I_SCALE0_PIN, I_SCALE1_PIN);
 
+  // Load the settings from "EEPROM"
   MeterSettings settings;
   EEPROM.begin(sizeof(settings));
   EEPROM.get(0, settings);
 
-  auto sum = Tools::calcSum(reinterpret_cast<uint8_t *>(&settings), sizeof(settings) - 1);
+  auto sum = Tools::calcSum(&settings, sizeof(settings) - 1);
   if (sum != settings.checksum)
   {
     ULOG_WARNING("No valid gain settings stored.");
@@ -58,60 +59,64 @@ void setup()
 
     if (!(millis() % GET_VALUE_PERIOD))
     {
-      auto [uValid, uValue] = uMeter.readVoltage();
-      auto [iValid, iValue] = iMeter.readVoltage();
+      auto uValue = uMeter.readVoltage();
+      auto iValue = iMeter.readVoltage();
       iValue *= I_SAMPLE_RES;
 
-      // Current meter scale adjustment
-      auto activeScale = uMeter.getActiveScale();
-      if (uValid && uValue > U_SCALE_MAX_VALUE[activeScale])
+      if (uValue > 0) // Voltage is valid
       {
-        if (activeScale < 3)
+        // Voltage meter scale adjustment
+        auto activeScale = uMeter.getActiveScale();
+        if (uValue > U_SCALE_MAX_VALUE[activeScale]) // Too high
         {
-          uMeter.selectScale(activeScale + 1);
-          uValid = false;
+          if (activeScale < 3)
+          {
+            uMeter.selectScale(activeScale + 1);
+            uValue = -1; // Invalidate the value
+          }
+          else
+          {
+            uValue = INFINITY; // Overload
+          }
         }
-        else
+        else if (uValue < U_SCALE_MIN_VALUE[activeScale]) // Too low
         {
-          uValue = INFINITY;
-        }
-      }
-      else if (uValid && uValue < U_SCALE_MIN_VALUE[activeScale])
-      {
-        if (activeScale > 0)
-        {
-          uMeter.selectScale(activeScale - 1);
-          uValid = false;
+          if (activeScale > 0)
+          {
+            uMeter.selectScale(activeScale - 1);
+          }
         }
       }
 
-      // Voltage meter scale adjustment
-      activeScale = iMeter.getActiveScale();
-      if (iValid && iValue > I_SCALE_MAX_VALUE[activeScale])
+      if (iValue > 0)
       {
-        if (activeScale < 3)
+        // Current meter scale adjustment
+        auto activeScale = iMeter.getActiveScale();
+        if (iValue > I_SCALE_MAX_VALUE[activeScale])
         {
-          iMeter.selectScale(activeScale + 1);
-          iValid = false;
+          if (activeScale < 3)
+          {
+            iMeter.selectScale(activeScale + 1);
+            iValue = -1; // Invalidate the value
+          }
+          else
+          {
+            iValue = INFINITY;
+          }
         }
-        else
+        else if (iValue < I_SCALE_MIN_VALUE[activeScale])
         {
-          iValue = INFINITY;
-        }
-      }
-      else if (iValid && iValue < I_SCALE_MIN_VALUE[activeScale])
-      {
-        if (activeScale > 0)
-        {
-          iMeter.selectScale(activeScale - 1);
-          iValid = false;
+          if (activeScale > 0)
+          {
+            iMeter.selectScale(activeScale - 1);
+          }
         }
       }
 
       ULOG_DEBUG("Voltage: %fV, Current: %fA", uValue, iValue);
-      sendValue(uValue, iValue);
-      Display::updateVoltage(uValid, uValue);
-      Display::updateCurrent(iValid, iValue);
+      UpLink::sendValue(uValue, iValue);
+      Display::updateVoltage(uValue);
+      Display::updateCurrent(iValue);
     }
   }
 }

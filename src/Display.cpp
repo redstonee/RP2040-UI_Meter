@@ -16,9 +16,7 @@ namespace Display
     static bool voltageUpdated = false;
     static bool currentUpdated = false;
     static float voltageValue = 0;
-    static bool voltageValid = 0;
     static float currentValue = 0;
-    static bool currentValid = 0;
 
     inline void flushDisplay(lv_display_t *disp, const lv_area_t *area,
                              uint8_t *px_map)
@@ -123,21 +121,19 @@ namespace Display
         lv_group_add_obj(buttonGroup, b2);
     }
 
-    void updateVoltage(const bool valid, const float value)
+    void updateVoltage(const float value)
     {
         voltageValue = value;
-        voltageValid = valid;
         voltageUpdated = true;
     }
 
-    void updateCurrent(const bool valid, const float value)
+    void updateCurrent(const float value)
     {
         currentValue = value;
-        currentValid = valid;
         currentUpdated = true;
     }
 
-    inline void updateText(lv_obj_t *label, const bool valid, const float voltage, const char unit)
+    inline void updateText(lv_obj_t *label, const float value, const char unit)
     {
         if (!label)
         {
@@ -145,12 +141,12 @@ namespace Display
             return;
         }
         String txt;
-        if (!valid)
-            txt = "---";
-        else if (voltage == INFINITY)
+        if (value < 0)
+            txt = "----";
+        else if (value == INFINITY)
             txt = "--Overload--";
         else
-            txt = String(voltage, 3) + " " + unit;
+            txt = String(value, 3) + " " + unit;
 
         lv_label_set_text(label, txt.c_str());
     }
@@ -159,13 +155,13 @@ namespace Display
     {
         if (voltageUpdated)
         {
-            updateText(vValueLabel, voltageValid, voltageValue, 'V');
+            updateText(vValueLabel, voltageValue, 'V');
             voltageUpdated = false;
         }
 
         if (currentUpdated)
         {
-            updateText(iValueLabel, currentValid, currentValue, 'A');
+            updateText(iValueLabel, currentValue, 'A');
             currentUpdated = false;
         }
 

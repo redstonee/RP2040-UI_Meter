@@ -28,18 +28,16 @@ namespace Display
     /**
      * @brief Update the voltage value on the display
      *
-     * @param valid A flag to indicate if the value is valid
-     * @param value The voltage value in volts, or INFINITY for overload
+     * @param value The voltage value in volts, or INFINITY for overload, or -1 for invalid
      */
-    void updateVoltage(const bool, const float);
+    void updateVoltage(const float);
 
     /**
      * @brief Update the current value on the display
      *
-     * @param valid A flag to indicate if the value is valid
-     * @param value The current value in amperes, or INFINITY for overload
+     * @param value The current value in amperes, or INFINITY for overload, or -1 for invalid
      */
-    void updateCurrent(const bool, const float);
+    void updateCurrent(const float);
 
     /** Predefined keys to control focused object via lv_group_send(group, c) */
     enum
