@@ -1,4 +1,5 @@
 #pragma once
+#include "ulog.h"
 
 // Key pins
 constexpr auto KEY_M_PIN = 5;
@@ -35,3 +36,9 @@ constexpr float I_SCALE_MIN_VALUE[] = {0.5, 0.2, 0.1, 0};
 constexpr auto SAMPLE_PERIOD = 10;
 constexpr auto GET_VALUE_PERIOD = 500;
 constexpr auto LVGL_HANDLE_PERIOD = 5;
+constexpr auto CONSOLE_HANDLE_PERIOD = 15;
+
+// Console
+constexpr auto LOG_LEVEL = ULOG_DEBUG_LEVEL;
+constexpr auto CONSOLE_PROMPT = "8=> ";
+constexpr auto CONSOLE_BUFFER_SIZE = 64;

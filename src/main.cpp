@@ -3,7 +3,7 @@
 #include <ulog.h>
 
 #include "Tools.hpp"
-#include "UpLink.h"
+#include "Console.h"
 #include "Display.h"
 #include "KeyPad.hpp"
 #include "config.h"
@@ -22,7 +22,7 @@ struct MeterSettings
  */
 void setup()
 {
-  UpLink::init();
+  Console::init();
   analogReadResolution(ADC_RESOLUTION);
 
   VoltMeter uMeter(USENSE_PIN, U_SCALE0_PIN, U_SCALE1_PIN);
@@ -51,6 +51,8 @@ void setup()
 
   while (1)
   {
+    auto time0 = millis();
+
     if (!(millis() % SAMPLE_PERIOD))
     {
       uMeter.convertOnce();
@@ -113,11 +115,17 @@ void setup()
         }
       }
 
-      ULOG_DEBUG("Voltage: %fV, Current: %fA", uValue, iValue);
-      UpLink::sendValue(uValue, iValue);
       Display::updateVoltage(uValue);
       Display::updateCurrent(iValue);
     }
+
+    if (!(millis() % CONSOLE_HANDLE_PERIOD))
+    {
+      Console::handleConsoleEvent();
+    }
+    
+    while (millis() == time0)
+      ;
   }
 }
 

@@ -11,7 +11,7 @@ namespace Tools
      * @param len The length of the array
      * @return uint8_t sum
      */
-    uint8_t calcSum(const void *data, const std::size_t len)
+    inline uint8_t calcSum(const void *data, const std::size_t len)
     {
         uint8_t sum = 0;
         for (std::size_t i = 0; i < len; i++)
