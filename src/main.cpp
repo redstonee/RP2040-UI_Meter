@@ -5,11 +5,11 @@
 #include "Tools.hpp"
 #include "UpLink.h"
 #include "Display.h"
-#include "KeyPad.h"
+#include "KeyPad.hpp"
 #include "config.h"
 #include "VoltMeter.hpp"
 
-struct __attribute__((packed)) MeterSettings
+struct MeterSettings
 {
   float vScaleGains[4];
   float iScaleGains[4];
