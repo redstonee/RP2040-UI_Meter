@@ -98,27 +98,6 @@ namespace Display
         lv_obj_set_style_text_font(iValueLabel, &lv_font_montserrat_24, LV_PART_MAIN);
         lv_label_set_text(vValueLabel, "---");
         lv_label_set_text(iValueLabel, "---");
-
-        // Just for an example usage of lv_group
-        auto buttonGroup = lv_group_create();
-        lv_indev_set_group(keyPadIndev, buttonGroup);
-
-        auto b1 = lv_button_create(lv_screen_active());
-        lv_obj_set_size(b1, 50, 25);
-        lv_obj_align(b1, LV_ALIGN_BOTTOM_MID, -50, -8);
-        auto b1Label = lv_label_create(b1);
-        lv_label_set_text(b1Label, "111");
-        lv_obj_align(b1Label, LV_ALIGN_CENTER, 0, 0);
-
-        auto b2 = lv_button_create(lv_screen_active());
-        lv_obj_set_size(b2, 50, 25);
-        lv_obj_align(b2, LV_ALIGN_BOTTOM_MID, 50, -8);
-        auto b2Label = lv_label_create(b2);
-        lv_label_set_text(b2Label, "222");
-        lv_obj_align(b2Label, LV_ALIGN_CENTER, 0, 0);
-
-        lv_group_add_obj(buttonGroup, b1);
-        lv_group_add_obj(buttonGroup, b2);
     }
 
     void updateVoltage(const float value)
@@ -144,7 +123,7 @@ namespace Display
         if (value == -1)
             txt = "----";
         else if (value == INFINITY)
-            txt = "--Overload--";
+            txt = "Overload";
         else
             txt = String(value, 2) + " " + unit;
 
