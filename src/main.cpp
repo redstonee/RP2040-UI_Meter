@@ -11,11 +11,17 @@
 
 struct MeterSettings
 {
+  uint8_t header; // Should be 0x69
   float vScaleGains[4];
   float iScaleGains[4];
 
   uint8_t checksum; // XOR of the payload bytes
 };
+
+extern "C"
+{
+  extern const char help_cal[];
+}
 
 /**
  * @brief The entry point of the program
@@ -34,7 +40,7 @@ void setup()
   EEPROM.get(0, settings);
 
   auto sum = Tools::calcSum(&settings, sizeof(settings) - 1);
-  if (sum != settings.checksum)
+  if (settings.header != 0x69 || sum != settings.checksum)
   {
     ULOG_WARNING("No valid gain settings stored.");
     uMeter.setGains(U_SCALE_DEF_GAINS);
@@ -46,8 +52,103 @@ void setup()
     iMeter.setGains(settings.iScaleGains);
   }
 
-  uMeter.selectScale(2);
-  iMeter.selectScale(2);
+  uint8_t calibrating = 0; // 0: not calibration, 1: voltage, 2: current
+
+  auto cmdCalCallback = [&settings, &calibrating, &uMeter, &iMeter](std::span<String> args)
+  {
+    if (args[1].equals("start"))
+    {
+      if (calibrating)
+      {
+        ULOG_WARNING("Calibration already started");
+        return;
+      }
+
+      if (args[2].equals("u"))
+      {
+        calibrating = 1;
+        ULOG_INFO("Voltage calibration started");
+      }
+      else if (args[2].equals("i"))
+      {
+        calibrating = 2;
+        ULOG_INFO("Current calibration started");
+      }
+      else
+      {
+        ULOG_WARNING("Invalid argument: %s", args[2].c_str());
+      }
+      return;
+    }
+
+    if (args[1].equals("save"))
+    {
+      if (!calibrating)
+      {
+        ULOG_WARNING("Not in calibration mode");
+        return;
+      }
+
+      calibrating = false;
+      settings.checksum = Tools::calcSum(&settings, sizeof(settings) - 1);
+      EEPROM.put(0, settings);
+      EEPROM.commit();
+      ULOG_INFO("Calibration data saved");
+      return;
+    }
+
+    if (args[1].equals("exit"))
+    {
+      calibrating = false;
+      ULOG_INFO("Calibration canceled");
+      return;
+    }
+
+    if (args[1].equals("scale"))
+    {
+      if (!calibrating)
+      {
+        ULOG_WARNING("Not in calibration mode");
+        return;
+      }
+
+      if (args.size() == 2)
+      {
+        if (calibrating == 1)
+          ULOG_INFO("Voltage scale: %d", uMeter.getActiveScale());
+        else if (calibrating == 2)
+          ULOG_INFO("Current scale: %d", iMeter.getActiveScale());
+      }
+
+      else
+      {
+        auto scale = args[2].toInt();
+        if (scale <= 0 || scale > 3)
+        {
+          ULOG_WARNING("Invalid scale level");
+          return;
+        }
+
+        if (calibrating == 1)
+        {
+          uMeter.selectScale(scale);
+          ULOG_INFO("Voltage scale set to %d", scale);
+        }
+        else if (calibrating == 2)
+        {
+          iMeter.selectScale(scale);
+          ULOG_INFO("Current scale set to %d", scale);
+        }
+        else
+        {
+          ULOG_WARNING("Not in calibration mode");
+        }
+      }
+    }
+  };
+
+  Console::Command calCmd{"cal", help_cal, 1, 2, cmdCalCallback};
+  Console::registerCommand(calCmd);
 
   while (1)
   {
@@ -63,17 +164,17 @@ void setup()
     {
       auto uValue = uMeter.readVoltage();
       auto iValue = iMeter.readVoltage();
-      iValue *= I_SAMPLE_RES;
+      iValue /= I_SAMPLE_RES;
 
-      if (uValue > 0) // Voltage is valid
+      if (uValue >= 0) // Voltage is valid
       {
         // Voltage meter scale adjustment
         auto activeScale = uMeter.getActiveScale();
         if (uValue > U_SCALE_MAX_VALUE[activeScale]) // Too high
         {
-          if (activeScale < 3)
+          if (activeScale > 0)
           {
-            uMeter.selectScale(activeScale + 1);
+            uMeter.selectScale(activeScale - 1);
             uValue = -1; // Invalidate the value
           }
           else
@@ -83,22 +184,22 @@ void setup()
         }
         else if (uValue < U_SCALE_MIN_VALUE[activeScale]) // Too low
         {
-          if (activeScale > 0)
+          if (activeScale < 3)
           {
-            uMeter.selectScale(activeScale - 1);
+            uMeter.selectScale(activeScale + 1);
           }
         }
       }
 
-      if (iValue > 0)
+      if (iValue >= 0)
       {
         // Current meter scale adjustment
         auto activeScale = iMeter.getActiveScale();
         if (iValue > I_SCALE_MAX_VALUE[activeScale])
         {
-          if (activeScale < 3)
+          if (activeScale > 0)
           {
-            iMeter.selectScale(activeScale + 1);
+            iMeter.selectScale(activeScale - 1);
             iValue = -1; // Invalidate the value
           }
           else
@@ -108,13 +209,14 @@ void setup()
         }
         else if (iValue < I_SCALE_MIN_VALUE[activeScale])
         {
-          if (activeScale > 0)
+          if (activeScale < 3)
           {
-            iMeter.selectScale(activeScale - 1);
+            iMeter.selectScale(activeScale + 1);
           }
         }
       }
 
+      ULOG_DEBUG("Voltage: %f V (%d), Current: %f A (%d)", uValue, uMeter.getActiveScale(), iValue, iMeter.getActiveScale());
       Display::updateVoltage(uValue);
       Display::updateCurrent(iValue);
     }
@@ -123,7 +225,7 @@ void setup()
     {
       Console::handleConsoleEvent();
     }
-    
+
     while (millis() == time0)
       ;
   }

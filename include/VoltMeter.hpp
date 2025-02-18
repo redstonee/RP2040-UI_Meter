@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <utility>
+#include <ulog.h>
 
 class VoltMeter
 {
@@ -69,6 +70,7 @@ public:
         digitalWrite(scale0Pin, (scale & 1) ? 1 : 0); // Lower bit
         digitalWrite(scale1Pin, (scale & 2) ? 1 : 0); // Higher bit
         bufferFilled = 0;                             // Needless to actually modify the buffer
+        activeScale = scale;
     }
 
     inline uint8_t getActiveScale()
@@ -113,7 +115,8 @@ public:
             val += v;
         }
         val /= N_SAMPLES;
-        val *= 3.3 / (1 << ADC_RESOLUTION); // Convert to voltage
+        val *= 3.3 / (1 << ADC_RESOLUTION); // Convert to raw voltage
+        val /= scaleGains[activeScale];     // Apply the gain
         return val;
     }
 };

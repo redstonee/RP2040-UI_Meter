@@ -141,12 +141,12 @@ namespace Display
             return;
         }
         String txt;
-        if (value < 0)
+        if (value == -1)
             txt = "----";
         else if (value == INFINITY)
             txt = "--Overload--";
         else
-            txt = String(value, 3) + " " + unit;
+            txt = String(value, 2) + " " + unit;
 
         lv_label_set_text(label, txt.c_str());
     }

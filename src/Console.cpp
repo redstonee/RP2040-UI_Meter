@@ -21,7 +21,7 @@ namespace Console
      *
      * @param args
      */
-    static void cmdHelp(std::span<String> args)
+    static void cmdHelpCallback(std::span<String> args)
     {
         if (args.size() == 1)
         {
@@ -60,7 +60,7 @@ namespace Console
         };
         ulog_subscribe(logOutput, LOG_LEVEL);
 
-        Command helpCmd{"help", help_help, 0, 1, cmdHelp};
+        Command helpCmd{"help", help_help, 0, 1, cmdHelpCallback};
         registerCommand(helpCmd);
     }
 
@@ -72,9 +72,9 @@ namespace Console
             return;
         }
 
-        for (auto &cmd : commands)
+        for (auto &c : commands)
         {
-            if (cmd.name == cmd.name)
+            if (cmd.name == c.name)
             {
                 ULOG_ERROR("Unable to register command: %s, command already exists", cmd.name);
                 return;
@@ -134,7 +134,7 @@ namespace Console
                 Serial.print(c); // Echo
                 if (c == '\r')   // Carriage return
                     continue;
-                    
+
                 if (c == '\n') // Enter
                 {
                     if (bufferPos == 0) // Nothing to process
@@ -150,7 +150,7 @@ namespace Console
                         if (args[0] == cmd.name)
                         {
                             found = true;
-                            if (args.size() - 1 < cmd.minArgCount || args.size() > cmd.maxArgCount)
+                            if (args.size() - 1 < cmd.minArgCount || args.size() - 1 > cmd.maxArgCount)
                                 ULOG_WARNING("Invalid argument count for command: %s", cmd.name);
                             else
                                 cmd.cb(args);
