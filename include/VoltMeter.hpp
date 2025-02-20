@@ -97,6 +97,24 @@ public:
     }
 
     /**
+     * @brief Get the raw voltage value from the buffer
+     *
+     * @return Value in volts
+     */
+    float getRawVoltage()
+    {
+        float val = 0;
+        for (auto &v : readBuffer)
+        {
+            val += v;
+        }
+        val /= N_SAMPLES;
+        val *= 3.3 / (1 << ADC_RESOLUTION); // Convert to raw voltage
+
+        return val;
+    }
+
+    /**
      * @brief Get the smoothed voltage value from the buffer
      *
      * Only succeed if the buffer is filled
@@ -109,14 +127,7 @@ public:
         if (bufferFilled < N_SAMPLES)
             return -1;
 
-        float val = 0;
-        for (auto &v : readBuffer)
-        {
-            val += v;
-        }
-        val /= N_SAMPLES;
-        val *= 3.3 / (1 << ADC_RESOLUTION); // Convert to raw voltage
-        val /= scaleGains[activeScale];     // Apply the gain
+        auto val = getRawVoltage() / scaleGains[activeScale]; // Apply the gain
         return val;
     }
 };
