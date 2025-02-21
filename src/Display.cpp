@@ -4,6 +4,12 @@
 
 #include "Display.h"
 
+extern "C"
+{
+    LV_IMAGE_DECLARE(lightLogo);
+    LV_IMAGE_DECLARE(darkLogo);
+}
+
 namespace Display
 {
     static TFT_eSPI screen;
@@ -58,6 +64,19 @@ namespace Display
         ulog_message(ULOG_LEVELS[level], buf);
     }
 
+    inline void toggleTheme(lv_event_t *ev)
+    {
+        static bool darkTheme = 0;
+        darkTheme = !darkTheme;
+        lv_display_set_theme(nullptr, lv_theme_default_init(nullptr,
+                                                            lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED),
+                                                            darkTheme, LV_FONT_DEFAULT));
+
+        auto *button = lv_event_get_current_target_obj(ev);
+        lv_imagebutton_set_src(button, LV_IMAGEBUTTON_STATE_RELEASED, nullptr,
+                               darkTheme ? &lightLogo : &darkLogo, nullptr);
+    }
+
     void init()
     {
         // Initialize the driver and the graphics library
@@ -83,8 +102,8 @@ namespace Display
         // Put the widgets on the screen
         auto vHintLabel = lv_label_create(lv_screen_active());
         auto iHintLabel = lv_label_create(lv_screen_active());
-        lv_obj_align(vHintLabel, LV_ALIGN_LEFT_MID, 8, -60);
-        lv_obj_align(iHintLabel, LV_ALIGN_LEFT_MID, 8, 60);
+        lv_obj_align(vHintLabel, LV_ALIGN_LEFT_MID, 8, -80);
+        lv_obj_align(iHintLabel, LV_ALIGN_LEFT_MID, 8, 40);
         lv_label_set_text(vHintLabel, "Voltage: ");
         lv_label_set_text(iHintLabel, "Current: ");
         lv_obj_set_style_text_font(vHintLabel, &lv_font_montserrat_24, LV_PART_MAIN);
@@ -92,12 +111,22 @@ namespace Display
 
         vValueLabel = lv_label_create(lv_screen_active());
         iValueLabel = lv_label_create(lv_screen_active());
-        lv_obj_align(vValueLabel, LV_ALIGN_RIGHT_MID, -8, -60);
-        lv_obj_align(iValueLabel, LV_ALIGN_RIGHT_MID, -8, 60);
+        lv_obj_align(vValueLabel, LV_ALIGN_RIGHT_MID, -8, -80);
+        lv_obj_align(iValueLabel, LV_ALIGN_RIGHT_MID, -8, 40);
         lv_obj_set_style_text_font(vValueLabel, &lv_font_montserrat_24, LV_PART_MAIN);
         lv_obj_set_style_text_font(iValueLabel, &lv_font_montserrat_24, LV_PART_MAIN);
         lv_label_set_text(vValueLabel, "---");
         lv_label_set_text(iValueLabel, "---");
+
+        auto buttonGroup = lv_group_create();
+        lv_indev_set_group(keyPadIndev, buttonGroup);
+
+        auto lightDarkButton = lv_imagebutton_create(lv_screen_active());
+        lv_obj_set_size(lightDarkButton, 50, 50);
+        lv_obj_align(lightDarkButton, LV_ALIGN_BOTTOM_MID, 0, -8);
+        lv_imagebutton_set_src(lightDarkButton, LV_IMAGEBUTTON_STATE_RELEASED, nullptr, &darkLogo, nullptr);
+        lv_group_add_obj(buttonGroup, lightDarkButton);
+        lv_obj_add_event_cb(lightDarkButton, toggleTheme, LV_EVENT_CLICKED, nullptr);
     }
 
     void updateVoltage(const float value)

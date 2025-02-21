@@ -15,7 +15,7 @@ private:
     float scaleGains[4];
 
     // Sample buffer for voltage smoothing
-    static constexpr uint8_t N_SAMPLES = 10;
+    static constexpr uint8_t N_SAMPLES = 20;
     uint16_t readBuffer[N_SAMPLES]{0};
     uint8_t bufferFilled = 0;
 

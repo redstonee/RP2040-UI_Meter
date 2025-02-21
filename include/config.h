@@ -29,7 +29,7 @@ constexpr float I_SAMPLE_RES = 0.5; // Sample resistor value in Ohms
 // Threshold values for each scale
 constexpr float U_SCALE_MAX_VALUE[] = {14, 6.5, 3.1, 1.3};
 constexpr float U_SCALE_MIN_VALUE[] = {6, 2.8, 1.1, 0};
-constexpr float I_SCALE_MAX_VALUE[] = {1.3, 0.6, 0.25, 0.12};
+constexpr float I_SCALE_MAX_VALUE[] = {1.4, 0.6, 0.25, 0.12};
 constexpr float I_SCALE_MIN_VALUE[] = {0.5, 0.2, 0.1, 0};
 
 // Some loop period in ms
@@ -39,6 +39,6 @@ constexpr auto LVGL_HANDLE_PERIOD = 5;
 constexpr auto CONSOLE_HANDLE_PERIOD = 15;
 
 // Console
-constexpr auto LOG_LEVEL = ULOG_DEBUG_LEVEL;
+constexpr auto LOG_LEVEL = ULOG_INFO_LEVEL;
 constexpr auto CONSOLE_PROMPT = "8=> ";
 constexpr auto CONSOLE_BUFFER_SIZE = 64;
