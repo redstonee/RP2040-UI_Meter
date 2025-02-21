@@ -56,6 +56,7 @@ void setup()
 
   auto cmdCalCallback = [&settings, &calibrating, &uMeter, &iMeter](std::span<String> args)
   {
+    // cal start
     if (args[1].equals("start"))
     {
       if (calibrating)
@@ -81,6 +82,7 @@ void setup()
       return;
     }
 
+    // cal save
     if (args[1].equals("save"))
     {
       if (!calibrating)
@@ -89,7 +91,8 @@ void setup()
         return;
       }
 
-      calibrating = false;
+      calibrating = 0;
+      settings.header = 0x69;
       settings.checksum = Tools::calcSum(&settings, sizeof(settings) - 1);
       EEPROM.put(0, settings);
       EEPROM.commit();
@@ -97,52 +100,106 @@ void setup()
       return;
     }
 
+    // cal exit
     if (args[1].equals("exit"))
-    {
-      calibrating = false;
-      ULOG_INFO("Calibration canceled");
-      return;
-    }
-
-    if (args[1].equals("scale"))
     {
       if (!calibrating)
       {
         ULOG_WARNING("Not in calibration mode");
         return;
       }
+      calibrating = 0;
+      ULOG_INFO("Calibration canceled");
+      return;
+    }
 
-      if (args.size() == 2)
+    // cal scale
+    if (args[1].equals("scale"))
+    {
+      switch (calibrating)
       {
-        if (calibrating == 1)
-          ULOG_INFO("Voltage scale: %d", uMeter.getActiveScale());
-        else if (calibrating == 2)
-          ULOG_INFO("Current scale: %d", iMeter.getActiveScale());
-      }
-
-      else
+      case 1: // U
       {
-        auto scale = args[2].toInt();
-        if (scale <= 0 || scale > 3)
+        if (args.size() == 3)
         {
-          ULOG_WARNING("Invalid scale level");
+          auto scale = args[2].toInt();
+          if (scale < 0 || scale > 3)
+          {
+            ULOG_WARNING("Invalid scale level");
+            return;
+          }
+          uMeter.selectScale(scale);
+        }
+        auto activeScale = uMeter.getActiveScale();
+        ULOG_INFO("Voltage scale: %d, range: %.2fV - %.2fV",
+                  activeScale, U_SCALE_MIN_VALUE[activeScale], U_SCALE_MAX_VALUE[activeScale]);
+        return;
+      }
+      case 2: // I
+      {
+        if (args.size() == 3)
+        {
+          auto scale = args[2].toInt();
+          if (scale < 0 || scale > 3)
+          {
+            ULOG_WARNING("Invalid scale level");
+            return;
+          }
+          uMeter.selectScale(scale);
+        }
+        auto activeScale = iMeter.getActiveScale();
+        ULOG_INFO("Current scale: %d, range: %.2fA - %.2fA",
+                  activeScale, I_SCALE_MIN_VALUE[activeScale], I_SCALE_MAX_VALUE[activeScale]);
+        return;
+      }
+      default:
+        ULOG_WARNING("Not in calibration mode");
+        return;
+      }
+    }
+
+    // cal in
+    if (args[1].equals("in"))
+    {
+      auto inputValue = args[2].toFloat();
+
+      switch (calibrating)
+      {
+      case 1: // U
+      {
+        auto activeScale = uMeter.getActiveScale();
+        if (inputValue < U_SCALE_MIN_VALUE[activeScale] || inputValue > U_SCALE_MAX_VALUE[activeScale])
+        {
+          ULOG_WARNING("Input value out of range");
           return;
         }
 
-        if (calibrating == 1)
+        auto rawV = uMeter.getRawVoltage();
+        auto gain = rawV / inputValue;
+        settings.vScaleGains[activeScale] = gain;
+        ULOG_INFO("Voltage scale %d gain: %.4f", activeScale, gain);
+        return;
+      }
+
+      case 2: // I
+      {
+        auto activeScale = iMeter.getActiveScale();
+        if (inputValue < I_SCALE_MIN_VALUE[activeScale] || inputValue > I_SCALE_MAX_VALUE[activeScale])
         {
-          uMeter.selectScale(scale);
-          ULOG_INFO("Voltage scale set to %d", scale);
+          ULOG_WARNING("Input value out of range");
+          return;
         }
-        else if (calibrating == 2)
-        {
-          iMeter.selectScale(scale);
-          ULOG_INFO("Current scale set to %d", scale);
-        }
-        else
-        {
-          ULOG_WARNING("Not in calibration mode");
-        }
+
+        auto rawV = iMeter.getRawVoltage();
+        auto gain = rawV / (inputValue * I_SAMPLE_RES);
+        settings.iScaleGains[activeScale] = gain;
+        ULOG_INFO("Current scale %d gain: %.4f", activeScale, gain);
+        return;
+      }
+
+      default:
+        ULOG_WARNING("Not in calibration mode");
+        return;
       }
     }
   };
@@ -166,9 +223,9 @@ void setup()
       auto iValue = iMeter.readVoltage();
       iValue /= I_SAMPLE_RES;
 
-      if (uValue >= 0) // Voltage is valid
+      // Scale auto-adjustment
+      if (uValue >= 0 && !(calibrating == 1)) // Voltage is valid and not in calibration mode
       {
-        // Voltage meter scale adjustment
         auto activeScale = uMeter.getActiveScale();
         if (uValue > U_SCALE_MAX_VALUE[activeScale]) // Too high
         {
@@ -191,11 +248,10 @@ void setup()
         }
       }
 
-      if (iValue >= 0)
+      if (iValue >= 0 && !(calibrating == 2)) // Current is valid and not in calibration mode
       {
-        // Current meter scale adjustment
         auto activeScale = iMeter.getActiveScale();
-        if (iValue > I_SCALE_MAX_VALUE[activeScale])
+        if (iValue > I_SCALE_MAX_VALUE[activeScale]) // Too high
         {
           if (activeScale > 0)
           {
@@ -204,10 +260,10 @@ void setup()
           }
           else
           {
-            iValue = INFINITY;
+            iValue = INFINITY; // Overload
           }
         }
-        else if (iValue < I_SCALE_MIN_VALUE[activeScale])
+        else if (iValue < I_SCALE_MIN_VALUE[activeScale]) // Too low
         {
           if (activeScale < 3)
           {
