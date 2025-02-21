@@ -9,7 +9,7 @@
 #include "config.h"
 #include "VoltMeter.hpp"
 
-struct MeterSettings
+struct __attribute__((packed)) MeterSettings
 {
   uint8_t header; // Should be 0x69
   float vScaleGains[4];
@@ -36,21 +36,22 @@ void setup()
 
   // Load the settings from "EEPROM"
   MeterSettings settings;
-  EEPROM.begin(sizeof(settings));
+  EEPROM.begin(256);
   EEPROM.get(0, settings);
 
   auto sum = Tools::calcSum(&settings, sizeof(settings) - 1);
   if (settings.header != 0x69 || sum != settings.checksum)
   {
     ULOG_WARNING("No valid gain settings stored.");
-    uMeter.setGains(U_SCALE_DEF_GAINS);
-    iMeter.setGains(I_SCALE_DEF_GAIN);
+    memcpy(settings.vScaleGains, U_SCALE_DEF_GAINS, sizeof(U_SCALE_DEF_GAINS));
+    memcpy(settings.iScaleGains, I_SCALE_DEF_GAIN, sizeof(I_SCALE_DEF_GAIN));
   }
-  else
-  {
-    uMeter.setGains(settings.vScaleGains);
-    iMeter.setGains(settings.iScaleGains);
-  }
+  float vScaleGains[4];
+  float iScaleGains[4];
+  memcpy(vScaleGains, settings.vScaleGains, sizeof(vScaleGains));
+  memcpy(iScaleGains, settings.iScaleGains, sizeof(iScaleGains));
+  uMeter.setGains(vScaleGains);
+  iMeter.setGains(iScaleGains);
 
   uint8_t calibrating = 0; // 0: not calibration, 1: voltage, 2: current
 
@@ -59,6 +60,12 @@ void setup()
     // cal start
     if (args[1].equals("start"))
     {
+      if (args.size() < 3)
+      {
+        ULOG_WARNING("Missing argument <u/i>");
+        return;
+      }
+
       if (calibrating)
       {
         ULOG_WARNING("Calibration already started");
@@ -85,8 +92,17 @@ void setup()
     // cal save
     if (args[1].equals("save"))
     {
-      if (!calibrating)
+      switch (calibrating)
       {
+      case 1: // U
+        uMeter.setGains(settings.vScaleGains);
+        break;
+
+      case 2: // I
+        iMeter.setGains(settings.iScaleGains);
+        break;
+
+      default:
         ULOG_WARNING("Not in calibration mode");
         return;
       }
@@ -202,6 +218,14 @@ void setup()
         return;
       }
     }
+
+    // cal gains
+    if (args[1].equals("gains"))
+    {
+      ULOG_INFO("Voltage gains: %.4f %.4f %.4f %.4f", settings.vScaleGains[0], settings.vScaleGains[1], settings.vScaleGains[2], settings.vScaleGains[3]);
+      ULOG_INFO("Current gains: %.4f %.4f %.4f %.4f", settings.iScaleGains[0], settings.iScaleGains[1], settings.iScaleGains[2], settings.iScaleGains[3]);
+      return;
+    }
   };
 
   Console::Command calCmd{"cal", help_cal, 1, 2, cmdCalCallback};
@@ -223,8 +247,12 @@ void setup()
       auto iValue = iMeter.readVoltage();
       iValue /= I_SAMPLE_RES;
 
-      // Scale auto-adjustment
-      if (uValue >= 0 && !(calibrating == 1)) // Voltage is valid and not in calibration mode
+      // Scale auto-adjustment and overload detection when not in calibration mode
+      if (calibrating == 1)
+      {
+        uValue = -1;
+      }
+      else if (uValue >= 0) // Voltage is valid and not in calibration mode
       {
         auto activeScale = uMeter.getActiveScale();
         if (uValue > U_SCALE_MAX_VALUE[activeScale]) // Too high
@@ -248,7 +276,11 @@ void setup()
         }
       }
 
-      if (iValue >= 0 && !(calibrating == 2)) // Current is valid and not in calibration mode
+      if (calibrating == 2)
+      {
+        iValue = -1;
+      }
+      else if (iValue >= 0) // Current is valid and not in calibration mode
       {
         auto activeScale = iMeter.getActiveScale();
         if (iValue > I_SCALE_MAX_VALUE[activeScale]) // Too high
