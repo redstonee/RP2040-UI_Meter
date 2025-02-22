@@ -19,6 +19,11 @@ private:
         int key;
     };
 
+    /**
+     * @brief The callback function for the key state change interrupt.
+     *
+     * @param params The parameters passed to the interrupt.
+     */
     static void onKeyStateChange(void *params)
     {
         auto event = static_cast<KeyEvent *>(params);
@@ -39,6 +44,11 @@ public:
     {
     }
 
+    /**
+     * @brief Add a key to the keypad.
+     *
+     * @param key The pin number of the key.
+     */
     void addKey(int key)
     {
         keys.push_back(key);
@@ -47,6 +57,11 @@ public:
         attachInterruptParam(key, onKeyStateChange, CHANGE, static_cast<void *>(params));
     }
 
+    /**
+     * @brief Get the Last Key Event
+     *
+     * @return std::pair<int, bool> The pin number and the state of the last key event.
+     */
     std::pair<int, bool> getLastKeyEvent()
     {
         return {lastKeyPin, lastKeyState};

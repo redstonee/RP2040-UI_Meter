@@ -32,14 +32,6 @@ namespace Console
     void registerCommand(const Command &cmd);
 
     /**
-     * @brief Send the voltage and current values
-     *
-     * @param uValue The voltage value
-     * @param iValue The current value
-     */
-    void sendValue(const float uValue, const float iValue);
-
-    /**
      * @brief Handle the console event
      *
      * Should be called in the main loop

@@ -2,7 +2,6 @@
 #include <EEPROM.h>
 #include <ulog.h>
 
-#include "Tools.hpp"
 #include "Console.h"
 #include "Display.h"
 #include "KeyPad.hpp"
@@ -24,6 +23,23 @@ extern "C"
 }
 
 /**
+ * @brief Calculate the sum of an byte (uint8_t) array by XOR
+ *
+ * @param data A pointer to the byte array
+ * @param len The length of the array
+ * @return uint8_t sum
+ */
+inline uint8_t calcSum(const void *data, const std::size_t len)
+{
+  uint8_t sum = 0;
+  for (std::size_t i = 0; i < len; i++)
+  {
+    sum ^= *(reinterpret_cast<const uint8_t *>(data) + i);
+  }
+  return sum;
+}
+
+/**
  * @brief The entry point of the program
  */
 void setup()
@@ -39,7 +55,7 @@ void setup()
   EEPROM.begin(256);
   EEPROM.get(0, settings);
 
-  auto sum = Tools::calcSum(&settings, sizeof(settings) - 1);
+  auto sum = calcSum(&settings, sizeof(settings) - 1);
   if (settings.header != 0x69 || sum != settings.checksum)
   {
     ULOG_WARNING("No valid gain settings stored.");
@@ -92,14 +108,17 @@ void setup()
     // cal save
     if (args[1].equals("save"))
     {
+      float gains[4];
       switch (calibrating)
       {
       case 1: // U
-        uMeter.setGains(settings.vScaleGains);
+        memcpy(gains, settings.vScaleGains, sizeof(vScaleGains));
+        uMeter.setGains(gains);
         break;
 
       case 2: // I
-        iMeter.setGains(settings.iScaleGains);
+        memcpy(gains, settings.iScaleGains, sizeof(iScaleGains));
+        iMeter.setGains(gains);
         break;
 
       default:
@@ -109,7 +128,7 @@ void setup()
 
       calibrating = 0;
       settings.header = 0x69;
-      settings.checksum = Tools::calcSum(&settings, sizeof(settings) - 1);
+      settings.checksum = calcSum(&settings, sizeof(settings) - 1);
       EEPROM.put(0, settings);
       EEPROM.commit();
       ULOG_INFO("Calibration data saved");
@@ -161,7 +180,7 @@ void setup()
             ULOG_WARNING("Invalid scale level");
             return;
           }
-          uMeter.selectScale(scale);
+          iMeter.selectScale(scale);
         }
         auto activeScale = iMeter.getActiveScale();
         ULOG_INFO("Current scale: %d, range: %.2fA - %.2fA",

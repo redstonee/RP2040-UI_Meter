@@ -73,6 +73,11 @@ public:
         activeScale = scale;
     }
 
+    /**
+     * @brief Get the active scale
+     *
+     * @return The scale number (0-3)
+     */
     inline uint8_t getActiveScale()
     {
         return activeScale;
