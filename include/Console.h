@@ -38,4 +38,4 @@ namespace Console
      */
     void handleConsoleEvent();
 
-} // namespace UpLink
+} // namespace Console

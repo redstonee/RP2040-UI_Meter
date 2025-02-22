@@ -40,7 +40,7 @@ inline uint8_t calcSum(const void *data, const std::size_t len)
 }
 
 /**
- * @brief The entry point of the program
+ * @brief The entry point of core 0
  */
 void setup()
 {
