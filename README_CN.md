@@ -12,7 +12,7 @@
 * 电流测量精度：10mA
 
 ## 硬件方案
-![硬件框图](./images/hw_diagram.png)  
+![硬件框图](https://github.com/redstonee/RP2040-UI_Meter/images/hw_diagram.png)  
 该仪表使用`带屏版的12指神探`作为主控，它是由`硬禾学堂`制造的开发板，具有以下特点：
 - MCU: RP2040，双核 ARM Cortex-M0+ 处理器，具有 264KB 的 SRAM
 - 闪存：2MB SPI NOR Flash
@@ -21,14 +21,14 @@
 - 一个 12 针连接器用于电源输出和 9 个 GPIO（包括 3 个 ADC 通道）  
 
 该仪表使用一块自制的模拟前端扩展板，用于电压/电流信号的采集和初步处理，原理图如下：  
-![原理图](./images/sch.png)  
+![原理图](https://github.com/redstonee/RP2040-UI_Meter/images/sch.png)  
 其中左下角为扩展板的电源，从主控取5V供电，用一个LDO产生3V3的电压给模拟前端。虽然主控已经有3V3电源输出，但是查原理图发现其它是DC-DC电源，纹波较大，不适合模拟电路使用，因此扩展板采用了独立的LDO。  
 原理图其余部分左边是电压信号处理，使用低压Rail-to-Rail运放`LMV321`搭建了一个差分放大器，用双刀四掷模拟开关`CH444`切换放大器增益来切换量程，由两个GPIO控制。最后经过一个RC低通滤波器输出到主控的ADC通道。  
 右边是电流信号处理，基本组成和电压信号处理一样，只是多了一个采样电阻，并且增益更大，最后输出到主控的另一个ADC通道。
 
 #### 运放差分放大器原理简介
 运放差分放大器是一种用于放大两个输入信号差值的放大器。  
-![差分放大器](./images/diff_amp.png)  
+![差分放大器](https://github.com/redstonee/RP2040-UI_Meter/images/diff_amp.png)  
 上面是一个基本的应用原理图，其中$R_2=R_4$，$R_1=R_3$，$v_1$和$v_2$是输入信号，$v_{out}$是输出信号。该放大器的输出为
 $$A=(v_2-v_1)\frac{R_2}{R_1}$$
 因此可以通过同时调整$R_2$和$R_4$来调整增益。此外该放大器的差分输入阻抗为$R_{id}=2R_1$。
@@ -182,7 +182,7 @@ cal - Calibrate the current and voltage scales
 
 ### 主程序
 主程序定义了两个核心执行的函数。核心0首先初始化各个模块（除了显示），从EEPROM中读取校准数据并应用，然后进入主循环。主循环中不断读取电压/电流数值并显示、根据输入值切换量程，并处理控制台事件；核心1则负责初始化显示和处理显示事件。按键事件通过中断处理，因此不需要循环检测。    
-代码详见[main.cpp](./src/main.cpp)。
+代码详见[main.cpp](https://github.com/redstonee/RP2040-UI_Meter/src/main.cpp)。
 
 ## 使用
 ### 构建软件
@@ -207,5 +207,5 @@ cal - Calibrate the current and voltage scales
 可以按下按键来切换深色/浅色主题。
 
 ### 实测的电压表输入特性曲线  
-![I-U特性](./images/u_input_feature.png)  
+![I-U特性](https://github.com/redstonee/RP2040-UI_Meter/images/u_input_feature.png)  
 可以看到在不同量程下输入阻抗都在430kΩ附近，与理论值基本相符。
